@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
@@ -16,6 +16,7 @@ import {
   Sun
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { MesProvider } from '../../stores/mesContext';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -32,7 +33,8 @@ export function AppLayout({ children, currentView, onViewChange }: AppLayoutProp
     { id: 'inbox', label: 'Omni-Inbox', icon: MessageSquare, badge: 3 },
     { id: 'clients', label: 'Клиенты', icon: Users, badge: null },
     { id: 'projects', label: 'Проекты', icon: FolderOpen, badge: null },
-    { id: 'kanban', label: 'Канбан', icon: Kanban, badge: 5 },
+  { id: 'kanban', label: 'Канбан', icon: Kanban, badge: 5 },
+  { id: 'production', label: 'Производство', icon: Kanban, badge: null },
   ];
 
   const toggleTheme = () => {
@@ -148,7 +150,9 @@ export function AppLayout({ children, currentView, onViewChange }: AppLayoutProp
         
         {/* Content area */}
         <main className="flex-1 overflow-auto bg-background">
-          {children}
+          <MesProvider>
+            {children}
+          </MesProvider>
         </main>
       </div>
     </div>

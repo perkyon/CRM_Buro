@@ -36,7 +36,8 @@ export function Contact() {
     setStatus('loading');
     try {
       // Пример отправки на сервер (замените URL на свой endpoint)
-      const response = await fetch('/api/contact', {
+  // Call the server function path used by the local Hono server
+  const response = await fetch('/make-server-73ccbe73/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

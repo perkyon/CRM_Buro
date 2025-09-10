@@ -9,6 +9,7 @@ import { ClientsView } from './components/clients/ClientsView';
 import { ProjectsView } from './components/projects/ProjectsView';
 import { KanbanView } from './components/kanban/KanbanView';
 import { SettingsView } from './components/settings/SettingsView';
+import ProductionView from './components/production/ProductionView';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -41,6 +42,8 @@ function AppContent() {
         return <ProjectsView />;
       case 'kanban':
         return <KanbanView />;
+      case 'production':
+        return <ProductionView />;
       case 'settings':
         return <SettingsView />;
       default:

@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # CRM_Buro
 
 Локальная разработка и быстрая проверка проекта.
@@ -9,6 +9,27 @@
 npm install
 npm run dev
 ```
+Environment and Contact form
+----------------------------
+
+To persist contact form submissions into Supabase you must provide the service role key
+as an environment variable. Locally the server uses a KV fallback when the key is not set.
+
+Set the following env var for the server runtime (Deno/Hono):
+
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+
+When the key is present the contact endpoint will insert a `threads` row and a `messages`
+row into your Supabase Postgres database. Without the key the server stores contacts in the
+local KV store used by the demo server.
+
+Testing the contact form locally:
+
+1. Start the dev server: `npm run dev`
+2. Open the app in the browser and go to the Contact section.
+3. Submit the form. If SUPABASE_SERVICE_ROLE_KEY is present the data will be written to
+	your Supabase DB, otherwise it will be stored in the demo KV store used by the server.
+
 
 Сборка для продакшна:
 

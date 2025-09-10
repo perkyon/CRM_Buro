@@ -1,0 +1,188 @@
+Контекст: у нас уже есть фронт (React + TypeScript, Vite/Next — неважно). Дизайн трогаем минимально: добавляем новые вкладки, таблицы и канбан. Нужна рабочая логика по SOP, упрощённый цеховой канбан и экономика проекта.
+Базовые правила (важно)
+НЕТ Q-gate. Переход между этапами — по выполненному чек-листу.
+НЕТ QR/штрихкодов и нумерации деталей. Идентификация — по projectCode и имени узла/партии.
+Роли (RBAC): ADMIN, MANAGER, TECHNOLOGIST, SHOP_HEAD (имеет права менеджера + управление цехом), операторы: OPERATOR_CUT, OPERATOR_EDGE, OPERATOR_DRILL, OPERATOR_SAND, OPERATOR_PAINT, OPERATOR_PACK.
+Цеховой канбан (для сотрудников): Закупка → Раскрой/ЧПУ → Кромка → Присадка → Шлифовка → Покраска → Приёмка/Упаковка.
+Скипы маршрута возможны только для «без покраски» (минуем шлиф/покраску) и «без присадки» (редко). Решение фиксирует SHOP_HEAD.
+Задача для Copilot: создать/доработать модули
+// src/domain/stages.ts
+export enum ShopStage {
+  PURCHASE = 'PURCHASE',
+  CUT_CNC = 'CUT_CNC',
+  EDGE = 'EDGE',
+  DRILL = 'DRILL',
+  SANDING = 'SANDING',
+  PAINT = 'PAINT',
+  QA_PACK = 'QA_PACK',
+}
+
+// src/domain/roles.ts
+export type Role =
+  | 'ADMIN'
+  | 'MANAGER'
+  | 'TECHNOLOGIST'
+  | 'SHOP_HEAD'
+  | 'OPERATOR_CUT'
+  | 'OPERATOR_EDGE'
+  | 'OPERATOR_DRILL'
+  | 'OPERATOR_SAND'
+  | 'OPERATOR_PAINT'
+  | 'OPERATOR_PACK';
+
+// src/domain/project.ts
+export interface Project {
+  id: string;
+  projectSeq: number;      // автоинкремент (150, 151..)
+  projectCode: string;     // "Кухонный гарнитур 150", "Барная стойка 151"
+  category: string;        // выбранный тип
+  managerId: string;
+  status: string;          // общий проектный статус (если есть)
+  deadlinePlan?: string;
+  deadlineFact?: string;
+}
+
+// src/domain/work.ts
+export interface WorkOrder {
+  id: string;
+  projectId: string;
+  name: string;            // узел/зона: "Фасады 1"
+  stage: ShopStage;
+  status: 'QUEUED' | 'IN_PROGRESS' | 'DONE' | 'REWORK';
+  planStart?: string; planEnd?: string;
+  actualStart?: string; actualEnd?: string;
+  timeMinutes: number;
+  checklist: Record<string, boolean>;
+  notes?: string;
+  photos?: string[];
+  skipFlags?: { noPaint?: boolean; noDrill?: boolean };
+}
+
+// src/domain/bom.ts
+export interface BOMItem {
+  id: string;
+  projectId: string;
+  type: 'MATERIAL' | 'EDGE' | 'COATING' | 'FITTING' | 'PACKING';
+  sku?: string;
+  name: string;
+  spec?: string;
+  qtyRequired: number;
+  unit: 'm' | 'm2' | 'pcs' | 'kg' | 'l';
+  unitCost?: number;      // план
+  supplier?: string;
+}
+
+2) RBAC-гварды
+Добавь HOC/утилиту для проверки роли + «полосатый доступ» для операторов (видят только свою колонку):
+// src/auth/guards.ts
+export const hasRole = (roles: Role[], need: Role | Role[]) => {
+  const set = Array.isArray(need) ? need : [need];
+  return set.some(r => roles.includes(r));
+};
+Пример использования в компоненте колонки: оператор CUT видит только ShopStage.CUT_CNC, SHOP_HEAD и ADMIN — всё.
+3) Нумерация проектов
+При создании проекта: поле category (селект), авто-projectSeq (инкремент), projectCode = ${category} ${seq} с возможностью ручной правки.
+Храни «последний номер» в настройках/БД/локальном репозитории.
+4) Карточка проекта (табы)
+Добавь вкладки (минимум верстки, акцент на логику):
+Обзор, Документы, Замер, ТП, BOM/Ведомость, Производство, Закупка, Логистика/Монтаж, Экономика, Тайм-лайн.
+Тайм-лайн строится по WorkOrder (план/факт) c маркерами «приход закупки» и «доставка».
+5) Канбан «Производство»
+Создай компонент ShopKanban с колонками из ShopStage.
+Карточка партии (WorkOrderCard) содержит: projectCode • name • план/факт • таймер • чек-лист • кнопка "Готово этап".
+Правила переходов:
+Перемещать вправо можно только если все пункты чек-листа = true.
+Разрешить скипы:
+noPaint === true → минуем SANDING и PAINT.
+noDrill === true → минуем DRILL.
+Реализация: при нажатии «Готово этап» определяй следующую валидную колонку программно.
+6) Таймер и учёт времени
+Для WorkOrder добавь кнопки Start/Stop. На Stop — увеличивай timeMinutes.
+Сохраняй текущее состояние таймера в сторе (или БД), привязывай к пользователю.
+7) WIP/Загрузка цеха
+Сделай панель над канбаном:
+WIP по каждой колонке: activeWorkOrders / wipLimit.
+Загрузка (%) = plannedHoursActive / capacityPerPeriod × 100.
+Сами лимиты и мощность — в настройках/справочниках WorkCenter.
+8) Закупка/ETA/Приёмка
+Во вкладке «Закупка»:
+Создание заявок поставщику из BOMItem.
+Поля: поставщик, позиции, счет (файл), paid, ETA, приход (receivedQty), дефекты.
+При приходе материалов — флаг «готов к производству».
+9) Экономика (калькулятор цены)
+Реализуй чистые функции:
+// src/calc/economics.ts
+export interface EconInput {
+  materialsCost: number;               // Σ BOMItem.qtyRequired * unitCost
+  laborByStage: Partial<Record<ShopStage, number>>; // часы
+  hourRateByStage: Partial<Record<ShopStage, number>>;
+  installCost?: number;
+  variableOther?: number;              // расходники/логистика
+  fixedMonthly: number;                // фикс. расходы в месяц
+  plannedMonthlyHours: number;
+  targetProfitPct: number;             // 0.2 = 20%
+  commissionPct?: number;              // например 0.05
+  acquiringPct?: number;               // например 0.03
+  vatPct?: number;                     // 0.2 при ОСНО
+  minFixedShare?: number;              // для "цены-пола"
+  profitMinPct?: number;               // мин. прибыль в цене-пола
+}
+
+export function calcVC(input: EconInput) { /* материалы + труд + монтаж + переменные */ }
+export function calcOverheadRate(input: EconInput) { /* fixedMonthly / plannedMonthlyHours */ }
+export function calcFullCost(input: EconInput) { /* VC + overheadRate*Σчасы */ }
+export function calcPlannedPrice(input: EconInput) { /* FullCost*(1+targetProfit) */ }
+export function grossUpCommissions(price: number, commissionPct=0, acquiringPct=0) {
+  const denom = 1 - commissionPct - acquiringPct;
+  return denom > 0 ? price / denom : price;
+}
+export function addVAT(price: number, vatPct=0) { return price * (1 + vatPct); }
+export function calcFloorPrice(input: EconInput) { /* (VC + minFixedShare) / (1 - profitMin - comm - acq) */ }
+Во вкладке «Экономика» покажи: VC, Полную себестоимость, Цена-план, Итог (с комиссиями/НДС), Цена-пол.
+10) Чек-листы по этапам
+Заведи шаблоны чек-листов:
+// src/checklists/templates.ts
+export const CHECKLIST_BY_STAGE: Record<ShopStage, string[]> = {
+  PURCHASE: ['Счет оплачен', 'Материал в наличии/резерв', 'ETA занесена'],
+  CUT_CNC: ['Проверен раскрой', 'Пилы/фрезы ок', 'Контроль размеров'],
+  EDGE: ['Толщина/цвет кромки', 'Снятие фаски', 'Шов без дефектов'],
+  DRILL: ['Сверловка по карте', 'Крепеж соответствует', 'Контроль чистоты'],
+  SANDING: ['Зерно по карте', 'Притупление кромок', 'Обезпыление'],
+  PAINT: ['Грунт/слои по ТП', 'Режим камеры соблюден', 'Цвет совпадает с выкрасом'],
+  QA_PACK: ['Комплектность по packing list', 'Защита углов/кромок', 'Фото комплектации'],
+};
+Карточка этапа завершает работу, когда все пункты = true.
+11) Тайм-лайн проекта
+Построй мини-Гантт на основе WorkOrder.planStart/planEnd и actualStart/actualEnd, плюс маркеры:
+«Приход материалов по заявке»
+«Доставка на объект»
+«Монтаж завершён»
+12) Документы
+Кнопки в «Документы»: сгенерировать PDF (КП, Спецификация/BOM, Packing List, УПД/Акт) и «Отправить» (почта/телеграм). Без QR и номеров деталей.
+UX/доступ
+Операторы видят и работают только со своей колонкой.
+SHOP_HEAD и ADMIN видят всё, могут менять skipFlags (без покраски/без присадки).
+Менеджер может формировать документы и отправлять клиенту, планировать доставку и монтаж.
+Технолог редактирует ТП/BOM до статуса «ТП согласовано».
+Acceptance (проверь авто-тестами где возможно)
+Карточка проекта содержит все вкладки, данные сохраняются.
+Канбан «Производство» двигает партии без Q-gate, строго по чек-листу.
+Скипы работают по флагам noPaint/noDrill.
+Панель WIP/загрузки показывает корректные значения при изменении очереди.
+Экономика считает VC/полную себестоимость/цену-план/итог/цену-пол.
+Нумерация проектов «Категория №» автогенерируется, можно править вручную.
+Документы генерируются (без QR), отправка доступна ролям MANAGER/SHOP_HEAD.
+Подсказки Copilot (как писать код)
+Предпочитай чистые функции в src/calc/* и src/checklists/*.
+Компоненты: ProjectTabs, ShopKanban, WorkOrderCard, WipPanel, EconomicsPanel, ProcurementView, DocsView.
+Хранилище: superbase 
+Все магические числа выноси в src/config/app.ts (ставки часов, WIP-лимиты, мощность цеха, комиссии, НДС).
+Готовые «заголовки» коммитов
+feat(domain): add ShopStage, roles and core interfaces
+feat(ui): project tabs + overview + docs
+feat(mes): shop kanban, work order card, checklists, timers
+feat(dashboard): WIP panel and load calculation
+feat(economics): pricing calculator (VC/full cost/plan/floor)
+feat(procurement): PO/ETA/receipts
+feat(timeline): project mini-gantt
+chore(config): app settings and role guards
