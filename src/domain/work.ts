@@ -9,6 +9,7 @@ export interface WorkOrder {
   planStart?: string; planEnd?: string;
   actualStart?: string; actualEnd?: string;
   timeMinutes: number;
+  timerStartAt?: number; // epoch ms when timer started
   checklist: Record<string, boolean>;
   notes?: string;
   photos?: string[];

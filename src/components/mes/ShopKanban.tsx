@@ -6,6 +6,7 @@ import WipPanel from './WipPanel';
 import { STAGE_RU, t } from '../../i18n/ru';
 
 const STAGES: ShopStage[] = [
+  ShopStage.PURCHASE,
   ShopStage.CUT_CNC,
   ShopStage.EDGE,
   ShopStage.DRILL,
@@ -15,16 +16,25 @@ const STAGES: ShopStage[] = [
 ];
 
 export const ShopKanban: React.FC = () => {
-  const { workOrders, updateWorkOrder } = useMes();
+  const { workOrders, updateWorkOrder, startTimer, stopTimer } = useMes();
 
   const moveToNext = (id: string) => {
     const wo = workOrders.find(w => w.id === id);
     if (!wo) return;
+    // блокируем переход, если чек-лист не 100%
+    const allChecked = Object.values(wo.checklist || {}).every(Boolean);
+    if (!allChecked) return;
     const idx = STAGES.indexOf(wo.stage);
     // compute next taking into account skip flags
     let nextIdx = idx + 1;
-    if (wo.skipFlags?.noPaint && STAGES[nextIdx] === ShopStage.SANDING) nextIdx++;
-    if (wo.skipFlags?.noDrill && STAGES[nextIdx] === ShopStage.DRILL) nextIdx++;
+    // если noDrill — пропускаем DRILL
+    if (wo.skipFlags?.noDrill) {
+      while (STAGES[nextIdx] === ShopStage.DRILL) nextIdx++;
+    }
+    // если noPaint — пропускаем SANDING и PAINT
+    if (wo.skipFlags?.noPaint) {
+      while (STAGES[nextIdx] === ShopStage.SANDING || STAGES[nextIdx] === ShopStage.PAINT) nextIdx++;
+    }
     if (nextIdx >= STAGES.length) {
       updateWorkOrder(id, { status: 'DONE' });
       return;
@@ -33,14 +43,10 @@ export const ShopKanban: React.FC = () => {
   };
 
   const toggleStartStop = (id: string) => {
-    const wo = workOrders.find(w => w.id === id);
+    const wo = workOrders.find((w) => w.id === id);
     if (!wo) return;
-    if (wo.status === 'IN_PROGRESS') {
-      // stop
-      updateWorkOrder(id, { status: 'QUEUED', timeMinutes: (wo.timeMinutes || 0) + 15 });
-    } else {
-      updateWorkOrder(id, { status: 'IN_PROGRESS' });
-    }
+    if (wo.status === 'IN_PROGRESS') stopTimer(id);
+    else startTimer(id);
   };
 
   return (

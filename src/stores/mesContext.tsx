@@ -7,6 +7,9 @@ type MesContextValue = {
   setWorkOrders: (wo: WorkOrder[]) => void;
   updateWorkOrder: (id: string, patch: Partial<WorkOrder>) => void;
   addWorkOrder: (wo: WorkOrder) => void;
+  startTimer: (id: string) => void;
+  stopTimer: (id: string) => void;
+  events: { ts: number; user?: string; action: string; meta?: any }[];
 };
 
 const MesContext = createContext<MesContextValue | null>(null);
@@ -42,6 +45,7 @@ const sample: WorkOrder[] = [
 
 export const MesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>(sample);
+  const [events, setEvents] = useState<{ ts: number; user?: string; action: string; meta?: any }[]>([]);
 
   const updateWorkOrder = useCallback((id: string, patch: Partial<WorkOrder>) => {
     setWorkOrders(prev => prev.map(w => (w.id === id ? { ...w, ...patch } : w)));
@@ -49,8 +53,27 @@ export const MesProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addWorkOrder = useCallback((wo: WorkOrder) => setWorkOrders(prev => [wo, ...prev]), []);
 
+  const logEvent = useCallback((action: string, meta?: any) => {
+    setEvents(prev => [{ ts: Date.now(), action, meta }, ...prev].slice(0, 200));
+  }, []);
+
+  const startTimer = useCallback((id: string) => {
+    setWorkOrders(prev => prev.map(w => (w.id === id ? { ...w, status: 'IN_PROGRESS', actualStart: w.actualStart || new Date().toISOString(), timerStartAt: Date.now() } : w)));
+    logEvent('timer.start', { id });
+  }, [logEvent]);
+
+  const stopTimer = useCallback((id: string) => {
+    setWorkOrders(prev => prev.map(w => {
+      if (w.id !== id) return w;
+      const now = Date.now();
+      const deltaMin = w.timerStartAt ? Math.round((now - w.timerStartAt) / 60000) : 0;
+      return { ...w, status: 'QUEUED', timeMinutes: (w.timeMinutes || 0) + deltaMin, timerStartAt: undefined, actualEnd: new Date().toISOString() };
+    }));
+    logEvent('timer.stop', { id });
+  }, [logEvent]);
+
   return (
-    <MesContext.Provider value={{ workOrders, setWorkOrders, updateWorkOrder, addWorkOrder }}>
+  <MesContext.Provider value={{ workOrders, setWorkOrders, updateWorkOrder, addWorkOrder, startTimer, stopTimer, events }}>
       {children}
     </MesContext.Provider>
   );

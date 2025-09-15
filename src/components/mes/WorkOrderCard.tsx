@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { WorkOrder } from '../../domain/work';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Play, Square, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Square, CheckCircle2, ChevronDown, ChevronUp, Clock3 } from 'lucide-react';
+import { STAGE_RU } from '../../i18n/ru';
 
 export const WorkOrderCard: React.FC<{ work: WorkOrder; onDone: (id: string) => void; onStartStop: (id: string) => void }> = ({ work, onDone, onStartStop }) => {
   const [expanded, setExpanded] = useState(false);
@@ -14,6 +15,7 @@ export const WorkOrderCard: React.FC<{ work: WorkOrder; onDone: (id: string) => 
       <div className="flex justify-between items-start">
         <div>
           <div className="font-medium">{work.projectId} • {work.name}</div>
+          <div className="text-sm text-muted-foreground">{STAGE_RU[work.stage as any] || work.stage}</div>
           <div className="mt-1">
             <Badge variant={work.status === 'IN_PROGRESS' ? 'default' : work.status === 'DONE' ? 'secondary' : 'outline'}>
               {work.status === 'IN_PROGRESS' ? 'В работе' : work.status === 'DONE' ? 'Завершено' : 'Ожидает'}
@@ -31,8 +33,9 @@ export const WorkOrderCard: React.FC<{ work: WorkOrder; onDone: (id: string) => 
         </div>
       </div>
 
-      <div className="mt-2 text-sm text-muted-foreground">
-        План/Факт: {work.planStart ?? '-'} / {work.actualStart ?? '-'}
+      <div className="mt-2 text-sm text-muted-foreground flex items-center justify-between">
+        <span>План/Факт: {work.planStart ?? '-'} / {work.actualStart ?? '-'}</span>
+        <span className="inline-flex items-center"><Clock3 className="w-4 h-4 mr-1" /> {Math.round(work.timeMinutes)} мин</span>
       </div>
 
       {expanded && (

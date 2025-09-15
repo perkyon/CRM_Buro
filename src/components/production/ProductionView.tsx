@@ -5,6 +5,7 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { STAGE_RU, UI_RU } from '../../i18n/ru';
+import { CHECKLIST_BY_STAGE } from '../../checklists/templates';
 import { PlusCircle } from 'lucide-react';
 
 export const ProductionView: React.FC = () => {
@@ -17,14 +18,17 @@ export const ProductionView: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const stage = form.stage as ShopStage;
+    const checklistTemplate = CHECKLIST_BY_STAGE[stage] || [];
+    const checklist = Object.fromEntries(checklistTemplate.map((k) => [k, false]));
     const newWO = {
       id: `wo-${Date.now()}`,
       projectId: form.projectId || `proj-${Date.now()}`,
       name: form.name || 'Новая партия',
-      stage: form.stage as ShopStage,
+      stage,
       status: 'QUEUED' as const,
       timeMinutes: 0,
-      checklist: {},
+      checklist,
     };
     addWorkOrder(newWO as any);
     setForm({ projectId: '', name: '', stage: ShopStage.CUT_CNC });
