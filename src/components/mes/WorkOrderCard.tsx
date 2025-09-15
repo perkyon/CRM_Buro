@@ -25,7 +25,7 @@ export const WorkOrderCard: React.FC<{ work: WorkOrder; onDone: (id: string) => 
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant={work.status === 'IN_PROGRESS' ? 'destructive' : 'default'} onClick={() => onStartStop(work.id)}>
+          <Button size="sm" variant={work.status === 'IN_PROGRESS' ? 'destructive' : 'default'} onClick={() => onStartStop(work.id)} disabled={work.status !== 'IN_PROGRESS' && !work.materialsReady} title={work.status !== 'IN_PROGRESS' && !work.materialsReady ? 'Материалы не подтверждены' : undefined}>
             {work.status === 'IN_PROGRESS' ? <Square className="w-4 h-4 mr-1" /> : <Play className="w-4 h-4 mr-1" />}
             {work.status === 'IN_PROGRESS' ? 'Стоп' : 'Старт'}
           </Button>
@@ -38,6 +38,14 @@ export const WorkOrderCard: React.FC<{ work: WorkOrder; onDone: (id: string) => 
       <div className="mt-2 text-sm text-muted-foreground flex items-center justify-between">
         <span>План/Факт: {work.planStart ?? '-'} / {work.actualStart ?? '-'}</span>
         <span className="inline-flex items-center"><Clock3 className="w-4 h-4 mr-1" /> {Math.round(work.timeMinutes)} мин</span>
+      </div>
+
+      <div className="mt-1 text-xs">
+        {work.materialsReady ? (
+          <span className="text-green-600">Материалы подтверждены</span>
+        ) : (
+          <span className="text-amber-600">Материалы не подтверждены</span>
+        )}
       </div>
 
       {expanded && (

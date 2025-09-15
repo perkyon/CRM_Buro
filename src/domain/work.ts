@@ -17,6 +17,8 @@ export interface WorkOrder {
   photos?: string[];
   packingListUrl?: string; // ссылка/файл (url) на packing list
   skipFlags?: { noPaint?: boolean; noDrill?: boolean };
+  // Материалы готовы к запуску (гейт старта производства)
+  materialsReady?: boolean;
 }
 
 export default WorkOrder;

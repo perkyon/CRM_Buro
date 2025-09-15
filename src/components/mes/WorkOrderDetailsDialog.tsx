@@ -19,11 +19,12 @@ export const WorkOrderDetailsDialog: React.FC<{ work: WorkOrder; trigger: React.
   const [assignee, setAssignee] = useState(work.assignee || '');
   const [dueDate, setDueDate] = useState(work.dueDate || '');
   const [notes, setNotes] = useState(work.notes || '');
+  const [materialsReady, setMaterialsReady] = useState<boolean>(!!work.materialsReady);
 
   const handleChecklistToggle = (k: string, v: boolean) => updateChecklistItem(work.id, k, v);
 
   const handleSaveMeta = () => {
-    updateFields(work.id, { packingListUrl, photos, assignee, dueDate, notes });
+    updateFields(work.id, { packingListUrl, photos, assignee, dueDate, notes, materialsReady });
     setOpen(false);
   };
 
@@ -75,6 +76,14 @@ export const WorkOrderDetailsDialog: React.FC<{ work: WorkOrder; trigger: React.
             </label>
           </div>
 
+          <div className="border rounded p-3">
+            <label className="flex items-center justify-between">
+              <span className="text-sm">Материалы готовы к запуску</span>
+              <Switch checked={materialsReady} onCheckedChange={(val: any) => setMaterialsReady(!!val)} />
+            </label>
+            <p className="text-xs text-muted-foreground mt-1">Без подтверждения наличия материалов старт будет заблокирован.</p>
+          </div>
+
           <div>
             <Label>Заметки</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
@@ -99,7 +108,7 @@ export const WorkOrderDetailsDialog: React.FC<{ work: WorkOrder; trigger: React.
 
           <div className="flex items-center justify-between">
             <div className="flex gap-2">
-              <Button type="button" variant={work.status === 'IN_PROGRESS' ? 'destructive' : 'default'} onClick={() => (work.status === 'IN_PROGRESS' ? stopTimer(work.id) : startTimer(work.id))}>
+              <Button type="button" variant={work.status === 'IN_PROGRESS' ? 'destructive' : 'default'} onClick={() => (work.status === 'IN_PROGRESS' ? stopTimer(work.id) : startTimer(work.id))} disabled={work.status !== 'IN_PROGRESS' && !materialsReady} title={work.status !== 'IN_PROGRESS' && !materialsReady ? 'Материалы не подтверждены' : undefined}>
                 {work.status === 'IN_PROGRESS' ? <Square className="w-4 h-4 mr-1" /> : <Play className="w-4 h-4 mr-1" />}
                 {work.status === 'IN_PROGRESS' ? 'Стоп' : 'Старт'}
               </Button>

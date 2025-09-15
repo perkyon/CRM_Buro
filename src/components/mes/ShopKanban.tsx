@@ -10,6 +10,7 @@ import { Label } from '../ui/label';
 import { Plus } from 'lucide-react';
 import { CHECKLIST_BY_STAGE } from '../../checklists/templates';
 import { STAGE_RU, t } from '../../i18n/ru';
+import { useAuth } from '../../contexts/AuthContext';
 
 const STAGES: ShopStage[] = [
   ShopStage.PURCHASE,
@@ -23,6 +24,9 @@ const STAGES: ShopStage[] = [
 
 export const ShopKanban: React.FC = () => {
   const { workOrders, updateWorkOrder, startTimer, stopTimer, pushEvent } = useMes();
+  const { user } = useAuth();
+  const role = user?.role || 'manager';
+  const canAddWO = role === 'production_manager' || role === 'admin';
 
   const moveToNext = (id: string) => {
     const wo = workOrders.find(w => w.id === id);
@@ -76,7 +80,7 @@ export const ShopKanban: React.FC = () => {
                 <h3 className="font-semibold">{STAGE_RU[stage] || t(`stages.${stage}`)}</h3>
                 <div className="flex items-center gap-2">
                   <span className="text-xs px-2 py-0.5 rounded bg-white border">{items.length}</span>
-                  {stage === ShopStage.PURCHASE && (
+                  {stage === ShopStage.PURCHASE && canAddWO && (
                     <AddWorkOrderButton onCreate={(wo) => updateWorkOrder(wo.id, wo)} />
                   )}
                 </div>

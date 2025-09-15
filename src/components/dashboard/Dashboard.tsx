@@ -96,12 +96,30 @@ export function Dashboard() {
   ];
 
   const recentActivity = (events || []).slice(0, 8).map((e, idx) => {
-    const type = e.action.startsWith('timer.') ? 'task' : e.action.includes('project') ? 'status' : 'info';
+    const meta = e.meta || {};
+    let title = e.action;
+    let type = 'info';
+    if (e.action === 'timer.start') {
+      title = `Старт таймера • ${meta.name || meta.id}`;
+      type = 'task';
+    } else if (e.action === 'timer.stop') {
+      title = `Стоп таймера • ${meta.name || meta.id}`;
+      type = 'task';
+    } else if (e.action === 'workorder.move') {
+      title = `Переход этапа • ${meta.name || meta.id}: ${meta.from} → ${meta.to}`;
+      type = 'status';
+    } else if (e.action === 'workorder.done') {
+      title = `Завершён заказ • ${meta.name || meta.id}`;
+      type = 'status';
+    } else if (e.action === 'project.created') {
+      title = `Создан проект • ${meta.projectCode || meta.title || meta.id}`;
+      type = 'status';
+    }
     return {
       id: String(idx),
       type,
-      title: e.action,
-      subtitle: e.meta ? JSON.stringify(e.meta) : '',
+      title,
+      subtitle: meta.projectId ? `Проект: ${meta.projectId}` : '',
       time: new Date(e.ts).toLocaleTimeString('ru-RU'),
       status: type === 'task' ? 'success' : type === 'status' ? 'info' : 'new'
     };
