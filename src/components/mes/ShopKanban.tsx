@@ -24,6 +24,12 @@ export const ShopKanban: React.FC = () => {
     // блокируем переход, если чек-лист не 100%
     const allChecked = Object.values(wo.checklist || {}).every(Boolean);
     if (!allChecked) return;
+    // если текущий этап QA_PACK — проверяем обязательные вложения
+    if (wo.stage === ShopStage.QA_PACK) {
+      const hasPacking = !!wo.packingListUrl;
+      const hasPhotos = (wo.photos && wo.photos.length >= 1) || false;
+      if (!hasPacking || !hasPhotos) return;
+    }
     const idx = STAGES.indexOf(wo.stage);
     // compute next taking into account skip flags
     let nextIdx = idx + 1;

@@ -10,9 +10,12 @@ export interface WorkOrder {
   actualStart?: string; actualEnd?: string;
   timeMinutes: number;
   timerStartAt?: number; // epoch ms when timer started
+  assignee?: string;
+  dueDate?: string; // план окончания текущего этапа
   checklist: Record<string, boolean>;
   notes?: string;
   photos?: string[];
+  packingListUrl?: string; // ссылка/файл (url) на packing list
   skipFlags?: { noPaint?: boolean; noDrill?: boolean };
 }
 

@@ -4,11 +4,13 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Play, Square, CheckCircle2, ChevronDown, ChevronUp, Clock3 } from 'lucide-react';
 import { STAGE_RU } from '../../i18n/ru';
+import WorkOrderDetailsDialog from './WorkOrderDetailsDialog';
 
 export const WorkOrderCard: React.FC<{ work: WorkOrder; onDone: (id: string) => void; onStartStop: (id: string) => void }> = ({ work, onDone, onStartStop }) => {
   const [expanded, setExpanded] = useState(false);
 
   const allChecked = Object.values(work.checklist || {}).every(Boolean);
+  const qaBlockReason = work.stage === 'QA_PACK' && (!work.packingListUrl || !(work.photos && work.photos.length > 0));
 
   return (
     <div className="p-3 border rounded bg-white shadow-sm">
@@ -27,7 +29,7 @@ export const WorkOrderCard: React.FC<{ work: WorkOrder; onDone: (id: string) => 
             {work.status === 'IN_PROGRESS' ? <Square className="w-4 h-4 mr-1" /> : <Play className="w-4 h-4 mr-1" />}
             {work.status === 'IN_PROGRESS' ? 'Стоп' : 'Старт'}
           </Button>
-          <Button size="sm" onClick={() => onDone(work.id)} disabled={!allChecked}>
+          <Button size="sm" onClick={() => onDone(work.id)} disabled={!allChecked || !!qaBlockReason} title={qaBlockReason ? 'Требуется packing list и хотя бы одно фото' : undefined}>
             <CheckCircle2 className="w-4 h-4 mr-1" /> Готово этап
           </Button>
         </div>
@@ -53,10 +55,15 @@ export const WorkOrderCard: React.FC<{ work: WorkOrder; onDone: (id: string) => 
       )}
 
       <div className="mt-2">
-        <Button variant="ghost" size="sm" onClick={() => setExpanded(x => !x)}>
-          {expanded ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
-          {expanded ? 'Свернуть' : 'Подробнее'}
-        </Button>
+        <WorkOrderDetailsDialog
+          work={work}
+          trigger={
+            <Button variant="ghost" size="sm">
+              {expanded ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
+              Подробнее
+            </Button>
+          }
+        />
       </div>
     </div>
   );

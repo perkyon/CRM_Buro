@@ -10,6 +10,9 @@ type MesContextValue = {
   startTimer: (id: string) => void;
   stopTimer: (id: string) => void;
   events: { ts: number; user?: string; action: string; meta?: any }[];
+  updateChecklistItem: (id: string, key: string, value: boolean) => void;
+  setSkipFlags: (id: string, flags: Partial<NonNullable<WorkOrder['skipFlags']>>) => void;
+  updateFields: (id: string, fields: Partial<WorkOrder>) => void;
 };
 
 const MesContext = createContext<MesContextValue | null>(null);
@@ -72,8 +75,20 @@ export const MesProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logEvent('timer.stop', { id });
   }, [logEvent]);
 
+  const updateChecklistItem = useCallback((id: string, key: string, value: boolean) => {
+    setWorkOrders(prev => prev.map(w => w.id === id ? { ...w, checklist: { ...(w.checklist || {}), [key]: value } } : w));
+  }, []);
+
+  const setSkipFlags = useCallback((id: string, flags: Partial<NonNullable<WorkOrder['skipFlags']>>) => {
+    setWorkOrders(prev => prev.map(w => w.id === id ? { ...w, skipFlags: { ...(w.skipFlags || {}), ...flags } } : w));
+  }, []);
+
+  const updateFields = useCallback((id: string, fields: Partial<WorkOrder>) => {
+    setWorkOrders(prev => prev.map(w => w.id === id ? { ...w, ...fields } : w));
+  }, []);
+
   return (
-  <MesContext.Provider value={{ workOrders, setWorkOrders, updateWorkOrder, addWorkOrder, startTimer, stopTimer, events }}>
+  <MesContext.Provider value={{ workOrders, setWorkOrders, updateWorkOrder, addWorkOrder, startTimer, stopTimer, events, updateChecklistItem, setSkipFlags, updateFields }}>
       {children}
     </MesContext.Provider>
   );
