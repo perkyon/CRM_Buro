@@ -24,6 +24,7 @@ import {
   DollarSign,
   AlertTriangle
 } from 'lucide-react';
+import { AddProjectDialog } from '../dialogs/AddProjectDialog';
 
 export function ProjectsView() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,7 +43,7 @@ export function ProjectsView() {
     closed: { label: 'Закрыт', color: 'bg-emerald-100 text-emerald-800' },
   };
 
-  const projects = [
+  const [projects, setProjects] = useState<any[]>([
     {
       id: '2024-156',
       title: 'Кухонный гарнитур',
@@ -108,7 +109,7 @@ export function ProjectsView() {
       progress: 100,
       createdAt: '2024-07-10'
     }
-  ];
+  ]);
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -156,10 +157,15 @@ export function ProjectsView() {
           <h1 className="text-2xl mb-2">Проекты</h1>
           <p className="text-muted-foreground">Управление проектами и заказами</p>
         </div>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Новый проект
-        </Button>
+        <AddProjectDialog
+          onSuccess={(p: any) => setProjects(prev => [p, ...prev])}
+          trigger={
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Новый проект
+            </Button>
+          }
+        />
       </div>
 
       {/* Quick Stats */}

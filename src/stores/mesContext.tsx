@@ -13,6 +13,7 @@ type MesContextValue = {
   updateChecklistItem: (id: string, key: string, value: boolean) => void;
   setSkipFlags: (id: string, flags: Partial<NonNullable<WorkOrder['skipFlags']>>) => void;
   updateFields: (id: string, fields: Partial<WorkOrder>) => void;
+  pushEvent: (action: string, meta?: any) => void;
 };
 
 const MesContext = createContext<MesContextValue | null>(null);
@@ -88,7 +89,7 @@ export const MesProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   return (
-  <MesContext.Provider value={{ workOrders, setWorkOrders, updateWorkOrder, addWorkOrder, startTimer, stopTimer, events, updateChecklistItem, setSkipFlags, updateFields }}>
+  <MesContext.Provider value={{ workOrders, setWorkOrders, updateWorkOrder, addWorkOrder, startTimer, stopTimer, events, updateChecklistItem, setSkipFlags, updateFields, pushEvent: logEvent }}>
       {children}
     </MesContext.Provider>
   );

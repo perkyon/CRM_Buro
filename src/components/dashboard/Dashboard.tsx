@@ -1,5 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useData } from '../../contexts/DataContext';
+import { useMes } from '../../stores/mesContext';
+import { APP_CONFIG } from '../../config/app';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { AddClientDialog } from '../dialogs/AddClientDialog';
@@ -19,6 +21,7 @@ import {
 
 export function Dashboard() {
   const { dashboardStats, fetchDashboardStats, error } = useData();
+  const { events, workOrders } = useMes();
 
   useEffect(() => {
     fetchDashboardStats();
@@ -44,6 +47,19 @@ export function Dashboard() {
       </div>
     );
   }
+
+  // Пересчитываем загрузку и активные без сервера
+  const productionLoad = useMemo(() => {
+    const activeByStage = workOrders.reduce((acc, w) => {
+      if (w.status === 'IN_PROGRESS' || w.status === 'QUEUED') {
+        acc[w.stage] = (acc[w.stage] || 0) + (w.status === 'IN_PROGRESS' ? 1 : 0);
+      }
+      return acc;
+    }, {} as Record<string, number>);
+    const totalActive = (Object.values(activeByStage) as number[]).reduce((s: number, v: number) => s + v, 0);
+    const totalLimit = Object.values(APP_CONFIG.wipLimits as any).reduce((s: number, v: any) => s + (v || 0), 0) || 1;
+    return Math.min(100, Math.round((totalActive / totalLimit) * 100));
+  }, [workOrders]);
 
   const stats = [
     {
@@ -71,56 +87,25 @@ export function Dashboard() {
     },
     {
       title: 'Загрузка цеха',
-      value: dashboardStats.productionLoad || 0,
+      value: productionLoad,
       icon: Factory,
-      trend: `${dashboardStats.productionLoad || 0}%`,
+      trend: `${productionLoad}%`,
       trendUp: true,
       isPercentage: true
     }
   ];
 
-  const recentActivity = [
-    {
-      id: '1',
-      type: 'message',
-      title: 'Новое сообщение от Петров И.В.',
-      subtitle: 'Проект #2024-156: Кухонный гарнитур',
-      time: '2 мин назад',
-      status: 'new'
-    },
-    {
-      id: '2',
-      type: 'payment',
-      title: 'Получена предоплата 50%',
-      subtitle: 'Проект #2024-155: Гардеробная система',
-      time: '15 мин назад',
-      status: 'success'
-    },
-    {
-      id: '3',
-      type: 'status',
-      title: 'Статус изменен: В производстве',
-      subtitle: 'Проект #2024-154: Обеденный стол',
-      time: '1 час назад',
-      status: 'info'
-    },
-    {
-      id: '4',
-      type: 'task',
-      title: 'Завершена задача: Шлифовка',
-      subtitle: 'Проект #2024-153: Книжный шкаф',
-      time: '2 часа назад',
-      status: 'success'
-    },
-    {
-      id: '5',
-      type: 'deadline',
-      title: 'Приближается дедлайн',
-      subtitle: 'Проект #2024-152: Спальный гарнитур',
-      time: '3 часа назад',
-      status: 'warning'
-    }
-  ];
+  const recentActivity = (events || []).slice(0, 8).map((e, idx) => {
+    const type = e.action.startsWith('timer.') ? 'task' : e.action.includes('project') ? 'status' : 'info';
+    return {
+      id: String(idx),
+      type,
+      title: e.action,
+      subtitle: e.meta ? JSON.stringify(e.meta) : '',
+      time: new Date(e.ts).toLocaleTimeString('ru-RU'),
+      status: type === 'task' ? 'success' : type === 'status' ? 'info' : 'new'
+    };
+  });
 
   const getActivityIcon = (type: string) => {
     switch (type) {
