@@ -3,8 +3,9 @@ import { useMes } from '../../stores/mesContext';
 import { ShopStage } from '../../domain/stages';
 import WorkOrderCard from './WorkOrderCard';
 import WipPanel from './WipPanel';
+import { STAGE_RU, t } from '../../i18n/ru';
 
-const STAGES = [
+const STAGES: ShopStage[] = [
   ShopStage.CUT_CNC,
   ShopStage.EDGE,
   ShopStage.DRILL,
@@ -36,7 +37,7 @@ export const ShopKanban: React.FC = () => {
     if (!wo) return;
     if (wo.status === 'IN_PROGRESS') {
       // stop
-      updateWorkOrder(id, { status: 'QUEUED', timeMinutes: wo.timeMinutes + 15 });
+      updateWorkOrder(id, { status: 'QUEUED', timeMinutes: (wo.timeMinutes || 0) + 15 });
     } else {
       updateWorkOrder(id, { status: 'IN_PROGRESS' });
     }
@@ -46,16 +47,25 @@ export const ShopKanban: React.FC = () => {
     <div>
       <WipPanel />
       <div className="grid grid-cols-3 gap-4 mt-4">
-        {STAGES.map(stage => (
-          <div key={stage} className="bg-slate-50 p-3 rounded">
-            <h3 className="font-semibold mb-2">{stage}</h3>
-            <div className="space-y-3">
-              {workOrders.filter(w => w.stage === stage).map(w => (
-                <WorkOrderCard key={w.id} work={w} onDone={moveToNext} onStartStop={toggleStartStop} />
-              ))}
+        {STAGES.map((stage) => {
+          const items = workOrders.filter((w) => w.stage === stage);
+          return (
+            <div key={stage} className="bg-slate-50 p-3 rounded">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold">{STAGE_RU[stage] || t(`stages.${stage}`)}</h3>
+                <span className="text-xs px-2 py-0.5 rounded bg-white border">{items.length}</span>
+              </div>
+              <div className="space-y-3">
+                {items.map((w) => (
+                  <WorkOrderCard key={w.id} work={w} onDone={moveToNext} onStartStop={toggleStartStop} />
+                ))}
+              </div>
+              {items.length === 0 && (
+                <div className="text-sm text-slate-500 mt-2">{t('texts.noWorkOrders')}</div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

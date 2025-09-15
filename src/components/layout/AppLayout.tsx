@@ -30,7 +30,7 @@ export function AppLayout({ children, currentView, onViewChange }: AppLayoutProp
 
   const navigationItems = [
     { id: 'dashboard', label: 'Дашборд', icon: LayoutDashboard, badge: null },
-    { id: 'inbox', label: 'Omni-Inbox', icon: MessageSquare, badge: 3 },
+    { id: 'inbox', label: 'Входящие', icon: MessageSquare, badge: 3 },
     { id: 'clients', label: 'Клиенты', icon: Users, badge: null },
     { id: 'projects', label: 'Проекты', icon: FolderOpen, badge: null },
   { id: 'kanban', label: 'Канбан', icon: Kanban, badge: 5 },
