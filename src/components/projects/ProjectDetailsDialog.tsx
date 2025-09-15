@@ -19,6 +19,7 @@ interface Project {
   remaining: number;
   progress: number;
   createdAt: string;
+  projectCode?: string;
 }
 
 interface ProjectDetailsDialogProps {
@@ -53,6 +54,9 @@ export function ProjectDetailsDialog({ project, trigger, onSave }: ProjectDetail
           <DialogTitle>Информация о проекте</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {editData.projectCode && (
+            <div className="text-sm text-muted-foreground">Код проекта: {editData.projectCode}</div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="title">Название</Label>

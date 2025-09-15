@@ -22,7 +22,7 @@ const STAGES: ShopStage[] = [
 ];
 
 export const ShopKanban: React.FC = () => {
-  const { workOrders, updateWorkOrder, startTimer, stopTimer } = useMes();
+  const { workOrders, updateWorkOrder, startTimer, stopTimer, pushEvent } = useMes();
 
   const moveToNext = (id: string) => {
     const wo = workOrders.find(w => w.id === id);
@@ -49,9 +49,12 @@ export const ShopKanban: React.FC = () => {
     }
     if (nextIdx >= STAGES.length) {
       updateWorkOrder(id, { status: 'DONE' });
+      pushEvent('workorder.done', { id, projectId: wo.projectId, name: wo.name, from: wo.stage, to: 'DONE' });
       return;
     }
-    updateWorkOrder(id, { stage: STAGES[nextIdx], status: 'QUEUED' });
+    const toStage = STAGES[nextIdx];
+    updateWorkOrder(id, { stage: toStage, status: 'QUEUED' });
+    pushEvent('workorder.move', { id, projectId: wo.projectId, name: wo.name, from: wo.stage, to: toStage });
   };
 
   const toggleStartStop = (id: string) => {

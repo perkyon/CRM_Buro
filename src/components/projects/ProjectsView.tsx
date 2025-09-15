@@ -288,7 +288,7 @@ export function ProjectsView() {
                       <TableCell>
                         <div>
                           <p className="font-medium">{project.title}</p>
-                          <p className="text-sm text-muted-foreground">#{project.id}</p>
+                          <p className="text-sm text-muted-foreground">{project.projectCode ? project.projectCode : `#${project.id}`}</p>
                         </div>
                       </TableCell>
                       <TableCell>
