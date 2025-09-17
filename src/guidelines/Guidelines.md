@@ -1,0 +1,3 @@
+# Guidelines
+
+Project guidelines placeholder.

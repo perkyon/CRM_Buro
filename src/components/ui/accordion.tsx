@@ -1,0 +1,2 @@
+// placeholder accordion component
+export {};
